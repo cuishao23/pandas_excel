@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pylab as plt
 from datetime import date, timedelta
 
+
 '''
 1.创建文件
 '''
@@ -285,3 +286,155 @@ print(students.iloc[dupe.index])
 students = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students_Duplicates.xlsx', index_col='ID')
 students.drop_duplicates(subset='Name', inplace=True, keep='first')
 print(students)
+
+
+'''
+19.旋转数据表（行列转换）
+'''
+pd.options.display.max_columns = 999
+videos = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Videos.xlsx', index_col='Month')
+table = videos.transpose()
+print(table)
+
+
+'''
+20.读取CSV,TSV,TXT文件中的数据
+'''
+students1 = pd.read_csv('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.csv', index_col='ID')
+print(students1)
+
+students2 = pd.read_csv('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.tsv', sep='\t', index_col='ID')
+print(students2)
+
+students3 = pd.read_csv('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.txt', sep='|', index_col='ID')
+print(students3)
+
+
+'''
+21.透视表，分组，聚合（group by）
+'''
+# 方法1
+pd.options.display.max_columns = 999
+orders = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Orders.xlsx')
+orders['Year'] = pd.DatetimeIndex(orders['Date']).year
+pt1 = orders.pivot_table(index='Category', columns='Year', values='Total', aggfunc=np.sum)
+print(pt1)
+# 方法2
+pd.options.display.max_columns = 999
+orders = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Orders.xlsx')
+orders['Year'] = pd.DatetimeIndex(orders['Date']).year
+groups = orders.groupby(['Category', 'Year'])
+s = groups['Total'].sum()
+c = groups['ID'].count()
+pt2 = pd.DataFrame({'Sum': s, 'Count': c})
+print(pt2)
+
+
+'''
+22.线性回归，数据预测
+'''
+from scipy.stats import linregress
+
+sales = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Sales.xlsx', dtype={'Month': str})
+print(sales)
+
+slope, intercept, r, p, std_err = linregress(sales.index, sales.Revenue)
+exp = sales.index * slope + intercept
+
+plt.scatter(sales.index, sales.Revenue)
+plt.plot(sales.index, exp, color='orange')
+plt.title(f'y={slope}*x+{intercept}')
+plt.xticks(sales.index, sales.Month, rotation=90)
+plt.tight_layout()
+plt.show()
+
+
+'''
+23.条件格式
+'''
+def low_score_red(s):
+    color = 'red' if s < 60 else 'green'
+    return f'color:{color}'
+def highest_score_green2(col):
+    return ['background-color:lime' if v == col.max() else 'background-color:white' for v in col]
+students = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx')
+students.style.applymap(low_score_red, subset=['Test_1', 'Test_2', 'Test_3']).apply(highest_score_green2, subset=['Test_1', 'Test_2', 'Test_3'])
+
+import seaborn as sns
+color_map = sns.light_palette('green', as_cmap=True)
+students = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx')
+students.style.background_gradient(cmap=color_map, subset=['Test_1', 'Test_2', 'Test_3'])
+
+students = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx')
+students.style.bar(color='orange', subset=['Test_1', 'Test_2', 'Test_3'])
+
+
+'''
+24.行操作集锦
+'''
+page_001 = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx', sheet_name='Page_001')
+page_002 = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx', sheet_name='Page_002')
+# print(page_001)
+# print(page_002)
+students = page_001.append(page_002).reset_index(drop=True)
+
+# 追加末尾
+stu = pd.Series({'ID': 41, 'Name': 'James', 'Score': 99})
+students = students.append(stu, ignore_index=True)
+# 修改方法1
+students.at[39, 'Name'] = 'bilibili'
+students.at[39, 'Score'] = 100
+# 修改方法1
+stu = pd.Series({'ID': 40, 'Name': 'bilibili', 'Score': 100})
+students.iloc[39] = stu
+# 插入
+stu = pd.Series({'ID': 110, 'Name': 'libai', 'Score': 60})
+part1 = students[:20]
+part2 = students[20:]
+students = part1.append(stu, ignore_index=True).append(part2).reset_index(drop=True)
+# 删除方法1
+students.drop(index=[0, 1, 2], inplace=True)
+# 删除方法2
+students.drop(index=students[0:10].index, inplace=True)
+# 删除方法3
+for i in range(5, 15):
+    students['Name'].at[i] = ''
+missing = students.loc[students['Name'] == '']
+students.drop(index=missing.index, inplace=True)
+students = students.reset_index(drop=True)
+print(students)
+
+
+'''
+25.列操作集锦
+'''
+page_001 = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx', sheet_name='Page_001')
+page_002 = pd.read_excel('/Users/cuixin/Desktop/card/Pandas vs Excel/Students.xlsx', sheet_name='Page_002')
+# print(page_001)
+# print(page_002)
+
+students = pd.concat([page_001, page_002]).reset_index(drop=True)
+students['Age'] = np.arange(0, len(students))
+students.drop(columns=['Age', 'Score'], inplace=True)
+students.insert(1, column='Foo', value=66)
+students.rename(columns={'Foo': 'FOO', 'Name': 'NAME'}, inplace=True)
+students.dropna(inplace=True)
+print(students)
+
+
+'''
+26.读取数据库
+'''
+
+
+'''
+27.编写复杂方程
+'''
+def get_circumcircle_area(l, h):
+    r = np.sqrt(l ** 2 + h ** 2) / 2
+    return r ** 2 * np.pi
+def wrapper(row):
+    return get_circumcircle_area(row['Length'], row['Height'])
+rects = pd.read_excel('C:/Temp/Rectangles.xlsx', index_col='ID')
+rects['Circumcircle Area'] = rects.apply(wrapper, axis=1)
+print(rects)
